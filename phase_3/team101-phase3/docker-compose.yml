@@ -1,0 +1,48 @@
+version: "3"
+
+services:
+  db:
+    container_name: back_db
+    image: mysql:8.0
+    restart: always
+    tty: true
+    environment:
+      MYSQL_DATABASE: sample_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+    ports: 
+      - 3306:3306
+    command: --port 3306
+    volumes: 
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d
+      - ./mysql/conf.d:/etc/myaql/conf.d
+      - ./mysql/log/mysql:/var/log/mysql
+
+  server:
+    depends_on:
+      - db
+    build: ./server/
+    tty: true
+    container_name: back_fastapi
+    working_dir: /usr/src/server
+    ports:
+      - 8080:8080
+    volumes:
+      - ./server/code/:/usr/src/server
+      - ./server/sample_data/:/usr/src/server/sample_data
+
+  client:
+    build: ./client/
+    container_name: front_react
+    ports:
+      - 3000:3000
+    environment:
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./server/:/var/www/server/
+      - ./client/:/var/www/client/
+      # - ./client/src/:/usr/src/client
+    tty: true
+    stdin_open: true
+    command: sh -c "npm start"
